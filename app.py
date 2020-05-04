@@ -2,11 +2,14 @@ import tkinter
 import cv2
 import PIL.Image, PIL.ImageTk
 import tkinter.filedialog as fl
-
+import statistics
+import numpy as np
+import math
 
 class App:
     def __init__(self, window, window_title):
         self.first_click = True
+        self.second_click = False
         self.window = window
         self.window.title(window_title)
         self.buttonPanel = tkinter.Frame(self.window)
@@ -36,6 +39,7 @@ class App:
         self.labeltext = ''
         self.list_points = []
         self.i = 1
+        self.ill_or_not = []
 
     def select_images(self):
         self.btn_open.grid_remove()
@@ -196,7 +200,6 @@ class App:
         self.rescale_flag = True
 
     def rescale(self):
-        print(self.x1, self.x2)
         self.canvas.bind('<Button-1>', self.draw_line)
         if self.x1 is not None and self.x2 is not None:
             self.canvas.create_rectangle(self.x1, self.y1, self.x2, self.y2, width=3, outline='red')
@@ -206,6 +209,7 @@ class App:
                                      background='green', activebackground='green',
                                      command=lambda: self.rescale_image())
             self.ok_btn_rescale.grid(row=5, column=1)
+            # self.x1, self.y1, self.x2, self.y2 = None, None, None, None
 
     def rescale_image(self):
         self.revert_btn_rescale = tkinter.Button(self.buttonPanel, width=20,
@@ -225,8 +229,8 @@ class App:
         width = int(self.image_rescale.shape[1] * self.scale_percent / 100)
         height = int(self.image_rescale.shape[0] * self.scale_percent / 100)
         dim = (width, height)
-        resized = cv2.resize(self.image_rescale, dim, interpolation=cv2.INTER_AREA)
-        self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(resized))
+        self.resized = cv2.resize(self.image_rescale, dim, interpolation=cv2.INTER_AREA)
+        self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(self.resized))
         self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
         self.canvas.grid(row=0, column=0)
         self.ok_btn_rescale.grid_remove()
@@ -239,40 +243,84 @@ class App:
         self.rescale_flag = False
         self.distance_measurement_flag = True
 
-        self.btn_set_reference_size = tkinter.Button(self.buttonPanel, width=20,
+        self.measure_vessel = tkinter.Button(self.buttonPanel, width=20,
                                                      text="Измерение расстояние",
                                                      background='green', activebackground='green',
                                                      command=lambda: self.draw_line_list_event())
 
-        self.btn_set_reference_size.grid(row=3, column=1)
+        self.measure_vessel.grid(row=3, column=1)
 
-        self.btn_set_reference_size = tkinter.Button(self.buttonPanel, width=20,
-                                                     text="Выбрать 2 точки",
+
+        self.uniformity_vessel = tkinter.Button(self.buttonPanel, width=20,
+                                                     text="Равномерность\n диаметра сосуда",
                                                      background='green', activebackground='green',
-                                                     command=lambda: self.rescale())
+                                                     command=lambda: self.count_uniformity_vessel())
+        self.uniformity_vessel.grid(row=5, column=1)
 
-        self.btn_set_reference_size.grid(row=2, column=2)
-
-
-        self.btn_set_reference_size = tkinter.Button(self.buttonPanel, width=20,
-                                                     text="Ок",
-                                                     background='green', activebackground='green',
-                                                     command=lambda: self.rescale())
-
-        self.btn_set_reference_size.grid(row=3, column=2)
-
-        self.btn_set_reference_size = tkinter.Button(self.buttonPanel, width=20,
+        self.measure_vessel_reset = tkinter.Button(self.buttonPanel, width=20,
                                                      text="Сбросить",
                                                      background='green', activebackground='green',
-                                                     command=lambda: self.rescale())
+                                                     command=lambda: self.reset())
 
-        self.entry_label_out = tkinter.Label(self.buttonPanel, text=self.labeltext, font=("Arial 32", 11), activebackground='white')
-        self.entry_label_out.grid(row=4, column=2, pady=40)
+        self.measure_vessel_reset.grid(row=2, column=2)
 
-        self.btn_set_reference_size.grid(row=5, column=2)
+        self.entry_label_out = tkinter.Label(self.buttonPanel, text=self.labeltext, font=("Arial 32", 11), bg='white')
+        self.entry_label_out.grid(row=4, column=2)
 
+        self.measure_angle = tkinter.Button(self.buttonPanel, width=20,
+                                                     text="Измерение углов",
+                                                     background='green', activebackground='green',
+                                                     command=lambda: self.measure_angle_event())
+        self.measure_angle.grid(row=4, column=1)
     def draw_line_list_event(self):
         self.canvas.bind('<Button-1>', self.draw_line_list)
+
+    def measure_angle_event(self):
+        self.canvas.bind('<Button-1>', self.draw_angle)
+
+    def draw_angle(self, event):
+        if self.first_click is True:
+            if self.x1 is None and self.y1 is None:
+                self.x1 = event.x
+                self.list_points.append(self.x1)
+                self.y1 = event.y
+                self.list_points.append(self.y1)
+                self.first_click = False
+                self.second_click = True
+
+        elif self.second_click is True:
+            if self.x2 is None and self.y2 is None:
+                self.x2 = event.x
+                self.y2 = event.y
+                self.canvas.create_line(self.x1, self.y1, self.x2, self.y2, fill='yellow', width=2)
+                self.second_click = False
+
+        else:
+            self.x3 = event.x
+            self.y3 = event.y
+            self.canvas.create_line(self.x2, self.y2, self.x3, self.y3, fill='yellow', width=2)
+            A = (self.x1, self.y1)
+            B = (self.x2, self.y2)
+            C = (self.x3, self.y2)
+            a = np.radians(np.array(A))
+            b = np.radians(np.array(B))
+            c = np.radians(np.array(C))
+            avec = a - b
+            cvec = c - b
+
+            # Adjust vectors for changed longitude scale at given latitude into 2D space
+            lat = b[0]
+            avec[1] *= math.cos(lat)
+            cvec[1] *= math.cos(lat)
+
+            # Find the angle between the vectors in 2D space
+            angle2deg = np.degrees(
+                math.acos(np.dot(avec, cvec) / (np.linalg.norm(avec) * np.linalg.norm(cvec))))
+
+            self.first_click = True
+            self.labeltext = self.labeltext + '\n' + 'a({})= {}'.format(str(self.i), str(angle2deg))
+            self.entry_label_out['text'] = self.labeltext
+            self.x1, self.y1, self.x2, self.y2, self.x3, self.y3 = None, None, None, None, None, None
 
     def draw_line_list(self, event):
 
@@ -292,13 +340,54 @@ class App:
                 self.list_points.append(self.y2)
                 self.first_click = True
                 self.canvas.create_line(self.x1, self.y1, self.x2, self.y2, fill='yellow', width=2)
+                self.count_radius()
                 self.x1, self.y1, self.x2, self.y2 = None, None, None, None
 
     def count_radius(self):
         delta_pix = ((self.x2 - self.x1) ** 2 + (self.y2 - self.y1) ** 2) ** (1 / 2)
-        real_length = (delta_pix * self.converted_length)/self.scale_percent
+        real_length = (delta_pix / self.converted_length) / (self.scale_percent / 100)
+        self.ill_or_not.append(real_length)
         self.labeltext = self.labeltext + '\n' + 'r({})= {} мм'.format(str(self.i), str(real_length))
-        self.entry_label_out
+        self.entry_label_out['text'] = self.labeltext
+
+    def reset(self):
+        self.ill_or_not = []
+        self.labeltext = ''
+        self.entry_label_out['text'] = self.labeltext
+        self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(self.resized))
+        self.canvas.create_image(0, 0, image=self.photo, anchor=tkinter.NW)
+        self.canvas.grid(row=0, column=0)
+
+    def count_uniformity_vessel(self):
+        median_ = statistics.median(self.ill_or_not)
+        mean_ = statistics.mean(self.ill_or_not)
+        max_value = max(self.ill_or_not)
+        if mean_ > 0 and mean_ < 1:
+            text_4='Диагноз: В норме'
+        elif mean_>=1 and mean_ < 1.5:
+            text_4='Диагноз: Стадия: С1-телеангиэктазии'
+        elif median_>=1.5 and median_ < 4 and (max_value - median_) < 0.7:
+            text_4='Неравномерность диаметра сосуда: отсутсвует\n' \
+                   'Диагноз: Ретикулярный варикоз'
+        elif median_>=1.5 and median_ < 4 and (max_value - median_) > 0.7:
+            text_4 = 'Неравномерность диаметра сосуда: присутствует\n' \
+                     'Диагноз: Ретикулярный варикоз'
+        elif median_ >=4 and median_ < 8:
+            text_4='Диагноз: Стадия С1- ретикулярный варикоз'
+
+        else:
+            text_4='Данная алгоритм не знает\n' \
+                   'Такой патологии'
+
+        text_1 = 'Программа считает медиану значений всех  измеренных радиусов.'
+        text_2 = 'Средний диаметр сосуда: {} мм'.format(mean_)
+        text_3 = 'Максимальный раудис {} мм'.format(max_value)
+        self.entry_label_out['text'] = text_1 + '\n' + text_2 + '\n' + text_3 \
+                                        + '\n' + text_4
+
+
+
+
 root = tkinter.Tk()
 gui = App(root, '')
 root.mainloop()
