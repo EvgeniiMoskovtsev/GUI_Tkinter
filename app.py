@@ -6,6 +6,7 @@ import statistics
 import numpy as np
 import math
 
+
 class App:
     def __init__(self, window, window_title):
         self.first_click = True
@@ -60,8 +61,8 @@ class App:
         gr = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         clahe = cv2.createCLAHE(clipLimit=10.0, tileGridSize=(8, 8))
         tit = clahe.apply(gr)
-        self.result = cv2.cvtColor(tit, cv2.COLOR_GRAY2BGR)
-        self.substr_photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(self.result))
+        self.image = cv2.cvtColor(tit, cv2.COLOR_GRAY2BGR)
+        self.substr_photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(self.image))
         self.canvas.create_image(0, 0, image=self.substr_photo, anchor=tkinter.NW)
         if self.revert_btn_rescale is not None:
             self.revert_btn_rescale.grid_remove()
@@ -95,7 +96,6 @@ class App:
 
         # elif self.distance_measurement_flag is True:
 
-
     def set_size(self):
         self.canvas.bind('<Button-1>', self.draw_line)
 
@@ -120,7 +120,7 @@ class App:
                                                           command=lambda: self.cancel())
                     self.btn_cancel_draw.grid(row=2, column=2)
 
-                # Длина, обхват
+                    # Длина, обхват
 
                     self.length_btn = tkinter.Button(self.buttonPanel, width=10,
                                                      text="Длина",
@@ -152,8 +152,8 @@ class App:
                                      background='green', activebackground='green',
                                      command=lambda: self.set_text_lenght())
         self.info_label_length_btn = tkinter.Label(self.buttonPanel, text='Введите длину \n'
-                                                                   'выбранной области\n '
-                                                                   '(мм)', font=("Arial 32", 11))
+                                                                          'выбранной области\n '
+                                                                          '(мм)', font=("Arial 32", 11))
         self.info_label_length_btn.grid(row=5, column=1)
         self.ok_btn.grid(row=6, column=2)
 
@@ -193,7 +193,7 @@ class App:
         self.count_real_lenght()
 
     def count_real_lenght(self):
-        delta_pix = ((self.x2 - self.x1)**2 + (self.y2 - self.y1)**2)**(1/2)
+        delta_pix = ((self.x2 - self.x1) ** 2 + (self.y2 - self.y1) ** 2) ** (1 / 2)
         self.converted_length = delta_pix / self.text
         self.x1, self.y1, self.x2, self.y2 = None, None, None, None
         self.first_click = True
@@ -205,26 +205,26 @@ class App:
             self.canvas.create_rectangle(self.x1, self.y1, self.x2, self.y2, width=3, outline='red')
             self.canvas.grid(row=0, column=0)
             self.ok_btn_rescale = tkinter.Button(self.buttonPanel, width=10,
-                                     text="Ок",
-                                     background='green', activebackground='green',
-                                     command=lambda: self.rescale_image())
+                                                 text="Ок",
+                                                 background='green', activebackground='green',
+                                                 command=lambda: self.rescale_image())
             self.ok_btn_rescale.grid(row=5, column=1)
             # self.x1, self.y1, self.x2, self.y2 = None, None, None, None
 
     def rescale_image(self):
         self.revert_btn_rescale = tkinter.Button(self.buttonPanel, width=20,
-                                             text="Вернуть к исходному",
-                                             background='green', activebackground='green',
-                                             command=lambda: self.substr())
+                                                 text="Вернуть к исходному",
+                                                 background='green', activebackground='green',
+                                                 command=lambda: self.substr())
         self.revert_btn_rescale.grid(row=5, column=1)
         self.confirm_btn_rescale = tkinter.Button(self.buttonPanel, width=10,
-                                             text="Ок",
-                                             background='green', activebackground='green',
-                                             command=lambda: self.delete())
+                                                  text="Ок",
+                                                  background='green', activebackground='green',
+                                                  command=lambda: self.delete())
         self.confirm_btn_rescale.grid(row=6, column=1)
 
         self.canvas = tkinter.Canvas(self.canvasPanel, width=self.image.shape[1], height=self.image.shape[0])
-        self.image_rescale = self.result[self.y1:self.y2, self.x1:self.x2]
+        self.image_rescale = self.image[self.y1:self.y2, self.x1:self.x2]
         self.scale_percent = 300
         width = int(self.image_rescale.shape[1] * self.scale_percent / 100)
         height = int(self.image_rescale.shape[0] * self.scale_percent / 100)
@@ -244,23 +244,22 @@ class App:
         self.distance_measurement_flag = True
 
         self.measure_vessel = tkinter.Button(self.buttonPanel, width=20,
-                                                     text="Измерение расстояние",
-                                                     background='green', activebackground='green',
-                                                     command=lambda: self.draw_line_list_event())
+                                             text="Измерение расстояние",
+                                             background='green', activebackground='green',
+                                             command=lambda: self.draw_line_list_event())
 
         self.measure_vessel.grid(row=3, column=1)
 
-
         self.uniformity_vessel = tkinter.Button(self.buttonPanel, width=20,
-                                                     text="Равномерность\n диаметра сосуда",
-                                                     background='green', activebackground='green',
-                                                     command=lambda: self.count_uniformity_vessel())
+                                                text="Равномерность\n диаметра сосуда",
+                                                background='green', activebackground='green',
+                                                command=lambda: self.count_uniformity_vessel())
         self.uniformity_vessel.grid(row=5, column=1)
 
         self.measure_vessel_reset = tkinter.Button(self.buttonPanel, width=20,
-                                                     text="Сбросить",
-                                                     background='green', activebackground='green',
-                                                     command=lambda: self.reset())
+                                                   text="Сбросить",
+                                                   background='green', activebackground='green',
+                                                   command=lambda: self.reset())
 
         self.measure_vessel_reset.grid(row=2, column=2)
 
@@ -268,10 +267,11 @@ class App:
         self.entry_label_out.grid(row=4, column=2)
 
         self.measure_angle = tkinter.Button(self.buttonPanel, width=20,
-                                                     text="Измерение углов",
-                                                     background='green', activebackground='green',
-                                                     command=lambda: self.measure_angle_event())
+                                            text="Измерение углов",
+                                            background='green', activebackground='green',
+                                            command=lambda: self.measure_angle_event())
         self.measure_angle.grid(row=4, column=1)
+
     def draw_line_list_event(self):
         self.canvas.bind('<Button-1>', self.draw_line_list)
 
@@ -301,7 +301,9 @@ class App:
             self.canvas.create_line(self.x2, self.y2, self.x3, self.y3, fill='yellow', width=2)
             A = (self.x1, self.y1)
             B = (self.x2, self.y2)
-            C = (self.x3, self.y2)
+            C = (self.x3, self.y3)
+            # angle = math.atan2(C[1] - A[1], C[0] - A[0]) - math.atan2(B[1] - A[1], B[0] - A[0])
+            # angle2deg = (angle*180)/math.pi
             a = np.radians(np.array(A))
             b = np.radians(np.array(B))
             c = np.radians(np.array(C))
@@ -363,29 +365,26 @@ class App:
         mean_ = statistics.mean(self.ill_or_not)
         max_value = max(self.ill_or_not)
         if mean_ > 0 and mean_ < 1:
-            text_4='Диагноз: В норме'
-        elif mean_>=1 and mean_ < 1.5:
-            text_4='Диагноз: Стадия: С1-телеангиэктазии'
-        elif median_>=1.5 and median_ < 4 and (max_value - median_) < 0.7:
-            text_4='Неравномерность диаметра сосуда: отсутсвует\n' \
-                   'Диагноз: Ретикулярный варикоз'
-        elif median_>=1.5 and median_ < 4 and (max_value - median_) > 0.7:
+            text_4 = 'Диагноз: В норме'
+        elif mean_ >= 1 and mean_ < 1.5:
+            text_4 = 'Диагноз: Стадия: С1-телеангиэктазии'
+        elif median_ >= 1.5 and median_ < 4 and (max_value - median_) < 0.7:
+            text_4 = 'Неравномерность диаметра сосуда: отсутсвует\n' \
+                     'Диагноз: Ретикулярный варикоз'
+        elif median_ >= 1.5 and median_ < 4 and (max_value - median_) > 0.7:
             text_4 = 'Неравномерность диаметра сосуда: присутствует\n' \
                      'Диагноз: Ретикулярный варикоз'
-        elif median_ >=4 and median_ < 8:
-            text_4='Диагноз: Стадия С1- ретикулярный варикоз'
+        elif median_ >= 4 and median_ < 8:
+            text_4 = 'Диагноз: Стадия С1- ретикулярный варикоз'
 
         else:
-            text_4='Данная алгоритм не знает\n' \
-                   'Такой патологии'
+            text_4 = 'Данный алгоритм не знает\n' \
+                     'Такой патологии'
 
-        text_1 = 'Программа считает медиану значений всех  измеренных радиусов.'
         text_2 = 'Средний диаметр сосуда: {} мм'.format(mean_)
         text_3 = 'Максимальный раудис {} мм'.format(max_value)
-        self.entry_label_out['text'] = text_1 + '\n' + text_2 + '\n' + text_3 \
-                                        + '\n' + text_4
-
-
+        self.entry_label_out['text'] = '\n' + text_2 + '\n' + text_3 \
+                                       + '\n' + text_4
 
 
 root = tkinter.Tk()
